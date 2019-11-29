@@ -1,0 +1,210 @@
+<mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #sidenav position="end" mode="over" disableClose="true">
+        <mat-toolbar>
+            <h2 *ngIf="!pedido.id">Adicionar Pedido</h2>
+            <h2 *ngIf="pedido.id">Visualizar Pedido</h2>
+
+            <span class="flex-spacer"></span>
+            <button mat-icon-button (click)="sidenav.close()">
+                <mat-icon>close</mat-icon>
+            </button>
+        </mat-toolbar>
+
+        <div class="formulario">
+            <mat-tab-group>
+                <mat-tab label="Cabeçalho">
+                    <div class="custom-tab-content">
+                        <div class="flex-container">
+                            <mat-form-field>
+                                <input matInput placeholder="Código" [(ngModel)]="pedido.codigo" [disabled]="pedido.id">
+                            </mat-form-field>
+
+                            <span class="flex-spacer"></span>
+
+                            <mat-form-field>
+                                <input matInput [matDatepicker]="picker" placeholder="Data Pedido"
+                                    [(ngModel)]="pedido.dtpedido" [disabled]="pedido.id">
+                                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                                <mat-datepicker #picker></mat-datepicker>
+                            </mat-form-field>
+                        </div>
+
+                        <mat-form-field class="full-width">
+                            <mat-select placeholder="Tabela Preço" [(value)]="pedido.tabelapreco"
+                                [compareWith]="compareOptions" [disabled]="pedido.id">
+                                <mat-option *ngFor="let tabelapreco of tabelaprecos" [value]="tabelapreco">
+                                    {{ tabelapreco.nome }}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field class="full-width">
+                            <mat-select placeholder="Vendedor" [(value)]="pedido.vendedor"
+                                [compareWith]="compareOptions" [disabled]="pedido.id">
+                                <mat-option *ngFor="let vendedor of vendedores" [value]="vendedor">
+                                    {{ vendedor.nome }}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field class="full-width">
+                            <mat-select placeholder="Cliente" [(value)]="pedido.cliente" [compareWith]="compareOptions"
+                                [disabled]="pedido.id">
+                                <mat-option *ngFor="let cliente of clientes" [value]="cliente">
+                                    {{ cliente.nome }}
+                                </mat-option>
+                            </mat-select>
+                        </mat-form-field>
+                    </div>
+
+                    <mat-toolbar *ngIf="!pedido.id">
+                        <span class="flex-spacer"></span>
+                        <button mat-button (click)="sidenav.close()">Cancelar</button>
+                        <button mat-raised-button color="primary" (click)="confirmar()" [disabled]="this.pedido.itens.length == 0">Confirmar</button>
+                    </mat-toolbar>
+                </mat-tab>
+
+                <mat-tab>
+                    <ng-template mat-tab-label *ngIf="pedido.itens.length > 0">
+                        <span [matBadge]="pedido.itens.length" matBadgeOverlap="false">Itens</span>
+                    </ng-template>
+                    <ng-template mat-tab-label *ngIf="pedido.itens.length == 0">
+                        <span>Itens</span>
+                    </ng-template>
+
+                    <div class="custom-tab-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th colspan="2">Produto</th>
+                                    <th class="cell-center">Qtdade</th>
+                                    <th class="cell-right">Vlr Unit.</th>
+                                    <th class="cell-right">Vlr Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let item of pedido.itens">
+                                    <td>
+                                        <mat-checkbox color="warn" [(ngModel)]="item.checked" *ngIf="!pedido.id"></mat-checkbox>
+                                    </td>
+                                    <td>{{item.produto.nome}}</td>
+                                    <td class="cell-center">{{item.qtdade}}</td>
+                                    <td class="cell-right">{{item.vlrunit | currency}}</td>
+                                    <td class="cell-right">{{item.qtdade * item.vlrunit | currency}}</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" class="cell-right">
+                                        <h3> {{pedido.itens | totalPedido | currency}}</h3>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <mat-toolbar *ngIf="!pedido.id">
+                            <button mat-button color="warn" (click)="removeSelected()" *ngIf="someSelected()">Remover Selecionados</button>
+                            <span class="flex-spacer"></span>
+                            <button mat-stroked-button (click)="addItem()">Adicionar Item</button>
+                        </mat-toolbar>
+                    </div>
+                </mat-tab>
+
+                <mat-tab label="Observação">
+                    <div class="custom-tab-content">
+                        <mat-form-field class="full-width">
+                            <textarea matInput placeholder="Observação" rows="5" [(ngModel)]="pedido.observacao"
+                                [disabled]="pedido.id"></textarea>
+                        </mat-form-field>
+                    </div>
+                </mat-tab>
+            </mat-tab-group>
+        </div>
+
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+        <mat-card>
+            <mat-card-title>
+                <mat-toolbar color="primary">
+                    <h3>Cadastro de Pedidos</h3>
+                    <span class="flex-spacer"></span>
+                    <button mat-icon-button (click)="add()">
+                        <mat-icon>add</mat-icon>
+                    </button>
+                </mat-toolbar>
+                <mat-progress-bar mode="indeterminate" color="warn" *ngIf="loading"></mat-progress-bar>
+            </mat-card-title>
+
+            <mat-card-content>
+                <table mat-table [dataSource]="pedidos" *ngIf="!msgerror">
+
+                    <!-- Código Column -->
+                    <ng-container matColumnDef="codigo">
+                        <th mat-header-cell *matHeaderCellDef> Código </th>
+                        <td mat-cell *matCellDef="let pedido"> {{pedido.codigo}} </td>
+                    </ng-container>
+
+                    <!-- Dt Pedido Column -->
+                    <ng-container matColumnDef="dtpedido">
+                        <th mat-header-cell *matHeaderCellDef> Dt Pedido </th>
+                        <td mat-cell *matCellDef="let pedido"> {{pedido.dtpedido | date:'dd-MM-yyyy'}} </td>
+                    </ng-container>
+
+                    <!-- Tabela Preco Column -->
+                    <ng-container matColumnDef="tabelapreco">
+                        <th mat-header-cell *matHeaderCellDef> Tabela Preço </th>
+                        <td mat-cell *matCellDef="let pedido"> {{pedido.tabelapreco.nome}} </td>
+                    </ng-container>
+
+                    <!-- Cliente Column -->
+                    <ng-container matColumnDef="cliente">
+                        <th mat-header-cell *matHeaderCellDef> Cliente </th>
+                        <td mat-cell *matCellDef="let pedido"> {{pedido.cliente.nome}} </td>
+                    </ng-container>
+
+                    <!-- Vendedor Column -->
+                    <ng-container matColumnDef="vendedor">
+                        <th mat-header-cell *matHeaderCellDef> Vendedor </th>
+                        <td mat-cell *matCellDef="let pedido"> {{pedido.vendedor.nome}} </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="total">
+                        <th mat-header-cell *matHeaderCellDef> Total </th>
+                        <td mat-cell *matCellDef="let pedido"> {{pedido.itens | totalPedido | currency}} </td>
+                    </ng-container>
+
+                    <!-- Options Column -->
+                    <ng-container matColumnDef="options">
+                        <th mat-header-cell *matHeaderCellDef> </th>
+                        <td mat-cell *matCellDef="let pedido">
+                            <button mat-icon-button [matMenuTriggerFor]="menu">
+                                <mat-icon>more_vert</mat-icon>
+                            </button>
+                            <mat-menu #menu="matMenu">
+                                <button mat-menu-item (click)="excluir(pedido)">
+                                    <mat-icon>delete</mat-icon>
+                                    <span>Excluir</span>
+                                </button>
+                                <button mat-menu-item (click)="view(pedido)">
+                                    <mat-icon>visibility</mat-icon>
+                                    <span>Visualizar</span>
+                                </button>
+                            </mat-menu>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                </table>
+
+                <div class="panel-error" *ngIf="msgerror">
+                    <img src="assets/oops.png">
+                    <h1 class="mat-h1">Ocorreu um Erro</h1>
+                    <p class="mat-caption">{{ msgerror }}</p>
+                    <button mat-button color="warn" (click)="ngOnInit()">Tentar Novamente</button>
+                </div>
+            </mat-card-content>
+        </mat-card>
+    </mat-sidenav-content>
+</mat-sidenav-container>

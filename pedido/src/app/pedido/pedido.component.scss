@@ -1,0 +1,32 @@
+
+.custom-tab-content {
+    padding: 20px 30px;
+    
+    table {
+        width: 100%;
+        border-spacing: 0;
+
+        tr {
+            height: 45px;
+        }
+        th {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(0,0,0,0.55);
+            text-align: left;
+            border-bottom: 1px solid rgba(0,0,0,0.12);
+        }
+        tbody {
+            td {
+                border-bottom: 1px solid rgba(0,0,0,0.12);
+            }
+        }
+
+        .cell-center {
+            text-align: center;
+        }
+        .cell-right {
+            text-align: right;
+        }
+    }
+}
